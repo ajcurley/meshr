@@ -1,7 +1,7 @@
 use crate::geometry::collision::Intersects;
 use crate::geometry::Aabb;
 
-/// Check for a spatial intersection between two Aabb
+/// Check for an AABB/AABB spatial intersection
 fn intersects_aabb_aabb(a: &Aabb, b: &Aabb) -> bool {
     let min_a = a.min();
     let max_a = a.max();
@@ -29,73 +29,81 @@ mod test {
 
     #[test]
     fn hit_overlap_full() {
-        let center = Vector3::zeros();
-        let halfsize = Vector3::new(0.1, 0.1, 0.1);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::zeros();
+        let h = Vector3::new(0.1, 0.1, 0.1);
+        let b = Aabb::new(c, h);
 
-        assert!(Aabb::unit().intersects(&other));
+        assert!(intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn hit_overlap_partial() {
-        let center = Vector3::new(0.4, 0.4, 0.4);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::new(0.4, 0.4, 0.4);
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(Aabb::unit().intersects(&other));
+        assert!(intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn miss_overlay_x_min_only() {
-        let center = Vector3::new(-0.4, 1.2, 1.2);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::new(-0.4, 1.2, 1.2);
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(!Aabb::unit().intersects(&other));
+        assert!(!intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn miss_overlap_x_max_only() {
-        let center = Vector3::new(0.4, 1.2, 1.2);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::new(0.4, 1.2, 1.2);
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(!Aabb::unit().intersects(&other));
+        assert!(!intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn miss_overlay_y_min_only() {
-        let center = Vector3::new(1.2, -0.4, 1.2);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::new(1.2, -0.4, 1.2);
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(!Aabb::unit().intersects(&other));
+        assert!(!intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn miss_overlap_y_max_only() {
-        let center = Vector3::new(1.2, 0.4, 1.2);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::new(1.2, 0.4, 1.2);
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(!Aabb::unit().intersects(&other));
+        assert!(!intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn miss_overlay_z_min_only() {
-        let center = Vector3::new(1.2, 1.2, -0.4);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let c = Vector3::new(1.2, 1.2, -0.4);
+        let a = Aabb::unit();
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(!Aabb::unit().intersects(&other));
+        assert!(!intersects_aabb_aabb(&a, &b));
     }
 
     #[test]
     fn miss_overlap_z_max_only() {
-        let center = Vector3::new(1.2, 1.2, 0.4);
-        let halfsize = Vector3::new(0.2, 0.2, 0.2);
-        let other = Aabb::new(center, halfsize);
+        let a = Aabb::unit();
+        let c = Vector3::new(1.2, 1.2, 0.4);
+        let h = Vector3::new(0.2, 0.2, 0.2);
+        let b = Aabb::new(c, h);
 
-        assert!(!Aabb::unit().intersects(&other));
+        assert!(!intersects_aabb_aabb(&a, &b));
     }
 }
