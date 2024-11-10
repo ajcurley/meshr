@@ -2,6 +2,7 @@ use crate::geometry::collision::Intersects;
 use crate::geometry::{Aabb, Triangle, Vector3};
 
 /// Check for an AABB/Triangle spatial intersection
+/// - source: https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt
 fn intersects_aabb_triangle(a: &Aabb, t: &Triangle) -> bool {
     let center = a.center();
     let halfsize = a.halfsize();
