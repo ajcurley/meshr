@@ -1,7 +1,7 @@
 use crate::geometry::Vector3;
 
 #[derive(Debug, Clone, Default)]
-pub struct PolygonSoup {
+pub struct PolygonSoupMesh {
     vertices: Vec<Vector3>,
     face_offsets: Vec<usize>,
     face_vertices: Vec<usize>,
@@ -9,10 +9,10 @@ pub struct PolygonSoup {
     patches: Vec<String>,
 }
 
-impl PolygonSoup {
+impl PolygonSoupMesh {
     /// Construct an empty Polygon Soup mesh
-    pub fn new() -> PolygonSoup {
-        PolygonSoup::default()
+    pub fn new() -> PolygonSoupMesh {
+        PolygonSoupMesh::default()
     }
 
     /// Get the number of vertices
