@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
 
 use crate::geometry::{Aabb, Intersects};
+use crate::spatial::{Query, QueryMany};
 
 /// Maximum depth of the Octree
 const MAX_DEPTH: usize = (std::mem::size_of::<usize>() * 8 - 1) / 3;
@@ -49,7 +51,7 @@ where
         while let Some(code) = queue.pop() {
             if let Some(node) = self.nodes.get_mut(&code) {
                 if item.intersects(&node.bounds) {
-                    if node.is_leaf {
+                    if node.is_leaf() {
                         node.items.push(index);
                         codes.push(code);
                     } else {
@@ -103,6 +105,47 @@ where
                 self.nodes.insert(child_code, child_node);
             }
         }
+    }
+}
+
+impl<T, Q> Query<Q> for Octree<T>
+where
+    T: Intersects<Aabb> + Intersects<Q>,
+    Q: Intersects<Aabb>,
+{
+    fn query(&self, query: &Q) -> Vec<usize> {
+        let mut results = HashSet::new();
+        let mut queue = vec![1];
+
+        while let Some(code) = queue.pop() {
+            if let Some(node) = self.nodes.get(&code) {
+                if query.intersects(&node.bounds) {
+                    if node.is_leaf() {
+                        for i in node.items.iter() {
+                            if !results.contains(i) && self.items[*i].intersects(query) {
+                                results.insert(*i);
+                            }
+                        }
+                    } else {
+                        let mut children = node.children();
+                        queue.append(&mut children);
+                    }
+                }
+            }
+        }
+
+        results.into_iter().collect()
+    }
+}
+
+impl<T, Q> QueryMany<Q> for Octree<T>
+where
+    T: Intersects<Aabb> + Intersects<Q> + Sync,
+    Q: Intersects<Aabb> + Sync,
+    Octree<T>: Query<Q>,
+{
+    fn query_many(&self, queries: &[Q]) -> Vec<Vec<usize>> {
+        queries.par_iter().map(|q| self.query(q)).collect()
     }
 }
 
@@ -222,5 +265,76 @@ mod test {
         let bounds = Aabb::unit();
         let mut octree = Octree::<Vector3>::new(bounds);
         octree.insert(point);
+    }
+
+    #[test]
+    fn query() {
+        assert!(MAX_ITEMS_PER_NODE <= 101);
+
+        let bounds = Aabb::unit();
+        let mut octree = Octree::<Vector3>::new(bounds);
+
+        for i in 0..101 {
+            let v = ((i as f64) / 100. - 0.25).clamp(-0.5, 0.5);
+            let p = Vector3::new(v, v, v);
+            octree.insert(p);
+        }
+
+        let c = Vector3::new(0.2, 0.2, 0.2);
+        let h = Vector3::new(0.05, 0.05, 0.05);
+        let q = Aabb::new(c, h);
+        let results = octree.query(&q);
+
+        assert_eq!(11, results.len());
+    }
+
+    #[test]
+    fn query_no_results() {
+        assert!(MAX_ITEMS_PER_NODE <= 101);
+
+        let bounds = Aabb::unit();
+        let mut octree = Octree::<Vector3>::new(bounds);
+
+        for i in 0..101 {
+            let v = ((i as f64) / 100. - 0.25).clamp(-0.5, 0.5);
+            let p = Vector3::new(v, v, v);
+            octree.insert(p);
+        }
+
+        let c = Vector3::new(1.2, 1.2, 1.2);
+        let h = Vector3::new(0.05, 0.05, 0.05);
+        let q = Aabb::new(c, h);
+        let results = octree.query(&q);
+
+        assert_eq!(0, results.len());
+    }
+
+    #[test]
+    fn query_many() {
+        assert!(MAX_ITEMS_PER_NODE <= 101);
+
+        let bounds = Aabb::unit();
+        let mut octree = Octree::<Vector3>::new(bounds);
+
+        for i in 0..101 {
+            let v = ((i as f64) / 100. - 0.25).clamp(-0.5, 0.5);
+            let p = Vector3::new(v, v, v);
+            octree.insert(p);
+        }
+
+        let c = Vector3::new(0.2, 0.2, 0.2);
+        let h = Vector3::new(0.05, 0.05, 0.05);
+        let q1 = Aabb::new(c, h);
+
+        let c = Vector3::new(1.2, 1.2, 1.2);
+        let h = Vector3::new(0.05, 0.05, 0.05);
+        let q2 = Aabb::new(c, h);
+
+        let queries = vec![q1, q2];
+        let results = octree.query_many(&queries);
+
+        assert_eq!(2, results.len());
+        assert_eq!(11, results[0].len());
+        assert_eq!(0, results[1].len());
     }
 }
