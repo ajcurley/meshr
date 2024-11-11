@@ -4,6 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rayon = "1.10"
+
+[dev-dependencies]
+criterion = "0.5"
+rand = "0.8"
 
 [profile.dev]
 opt-level = 3
+
+[[bench]]
+name = "collision"
+harness = false
