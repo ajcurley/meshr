@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::prelude::*;
 
-use meshr::geometry::{Intersects, Aabb, Triangle, Vector3};
+use meshr::geometry::{Aabb, Intersects, Triangle, Vector3};
 
 /// AABB/Triangle intersection test benchmark
 pub fn benchmark_intersects_aabb_triangle(c: &mut Criterion) {
@@ -27,9 +27,6 @@ fn generate_vector3() -> Vector3 {
     Vector3::new(x, y, z)
 }
 
-criterion_group!(
-    benches,
-    benchmark_intersects_aabb_triangle,
-);
+criterion_group!(benches, benchmark_intersects_aabb_triangle,);
 
 criterion_main!(benches);
