@@ -12,29 +12,10 @@ fn intersects_aabb_triangle(a: &Aabb, t: &Triangle) -> bool {
     let v1 = t[1] - center;
     let v2 = t[2] - center;
 
-    // Bullet #1 - check for an intersection between the AABB and the
-    // bounds of the triangle.
-    for i in 0..3 {
-        let min = v0[i].min(v1[i]).min(v2[i]);
-        let max = v0[i].max(v1[i]).max(v2[i]);
-
-        if min > halfsize[i] || max < -halfsize[i] {
-            return false;
-        }
-    }
-
     // Calculate the edge vectors
     let e0 = v1 - v0;
     let e1 = v2 - v1;
     let e2 = v0 - v2;
-
-    // Bullet #2 - check for an instersection between the AABB and the
-    // plane of the triangle.
-    let normal = Vector3::cross(&e0, &e1);
-
-    if !plane_box_overlap(normal, v0, halfsize) {
-        return false;
-    }
 
     // Bullet #3 - 9 axis tests
     let fex = e0[0].abs();
@@ -82,6 +63,25 @@ fn intersects_aabb_triangle(a: &Aabb, t: &Triangle) -> bool {
     }
 
     if !axistest_z12(e2[1], e2[0], fey, fex, v1, v2, halfsize) {
+        return false;
+    }
+
+    // Bullet #1 - check for an intersection between the AABB and the
+    // bounds of the triangle.
+    for i in 0..3 {
+        let min = v0[i].min(v1[i]).min(v2[i]);
+        let max = v0[i].max(v1[i]).max(v2[i]);
+
+        if min > halfsize[i] || max < -halfsize[i] {
+            return false;
+        }
+    }
+
+    // Bullet #2 - check for an instersection between the AABB and the
+    // plane of the triangle.
+    let normal = Vector3::cross(&e0, &e1);
+
+    if !plane_box_overlap(normal, v0, halfsize) {
         return false;
     }
 
