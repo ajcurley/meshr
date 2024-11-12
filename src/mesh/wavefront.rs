@@ -1,5 +1,9 @@
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
+
+use flate2::read::GzDecoder;
 
 use crate::geometry::Vector3;
 use crate::mesh::PolygonSoupMesh;
@@ -23,8 +27,12 @@ impl ObjReader {
         let mut mesh = PolygonSoupMesh::new();
         let mut data = String::new();
 
-        // TODO: handle gzip
-        file.read_to_string(&mut data)?;
+        if self.is_gzip() {
+            let mut file = GzDecoder::new(file);
+            file.read_to_string(&mut data)?;
+        } else {
+            file.read_to_string(&mut data)?;
+        }
 
         for line in data.lines() {
             let line = line.trim();
@@ -98,6 +106,18 @@ impl ObjReader {
         mesh.insert_patch(name);
         Ok(())
     }
+
+    /// Check if the file is GZIP
+    fn is_gzip(&self) -> bool {
+        let path = Path::new(&self.path);
+
+        if let Some(ext) = path.extension().and_then(OsStr::to_str) {
+            let ext = ext.to_lowercase();
+            return ext == "gz" || ext == "gzip";
+        }
+
+        false
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -120,5 +140,40 @@ impl std::error::Error for ParseObjError {}
 impl From<ParseObjError> for std::io::Error {
     fn from(err: ParseObjError) -> Self {
         std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn read() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = ObjReader::new(&path).read().unwrap();
+
+        assert_eq!(8, mesh.n_vertices());
+        assert_eq!(12, mesh.n_faces());
+        assert_eq!(0, mesh.n_patches());
+    }
+
+    #[test]
+    fn read_gzip() {
+        let path = "tests/fixtures/box.obj.gz";
+        let mesh = ObjReader::new(&path).read().unwrap();
+
+        assert_eq!(8, mesh.n_vertices());
+        assert_eq!(12, mesh.n_faces());
+        assert_eq!(0, mesh.n_patches());
+    }
+
+    #[test]
+    fn read_groups() {
+        let path = "tests/fixtures/box.groups.obj";
+        let mesh = ObjReader::new(&path).read().unwrap();
+
+        assert_eq!(8, mesh.n_vertices());
+        assert_eq!(12, mesh.n_faces());
+        assert_eq!(6, mesh.n_patches());
     }
 }
