@@ -3,13 +3,8 @@ name = "meshr"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "meshr"
-crate-type = ["cdylib"]
-
 [dependencies]
 rayon = "1.10"
-pyo3 = { version = "0.22.6", features = ["extension-module"] }
 
 [dev-dependencies]
 criterion = "0.5"
