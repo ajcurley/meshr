@@ -13,9 +13,9 @@ pub struct HeMesh {
 
 impl HeMesh {
     /// Construct a half edge mesh from a polygon soup mesh
-    pub fn new(soup: &PolygonSoupMesh) -> Result<HeMesh> {
+    pub fn new(soup: &PolygonSoupMesh) -> Result<HeMesh, HeMeshError> {
         let mut mesh = HeMesh::default();
-        let mut edges = HashMap::<(usize, usize), Vec<usize>>();
+        let mut edges = HashMap::<(usize, usize), Vec<usize>>::new();
 
         // Index the patches
         for patch_id in 0..soup.n_patches() {
@@ -41,6 +41,12 @@ impl HeMesh {
             let (vertices, patch) = soup.face(face_id);
             let nv = vertices.len();
             let nh = mesh.half_edges.len();
+
+            let face = HeFace {
+                half_edge: nh,
+                patch: patch,
+            };
+            mesh.faces.push(face);
 
             for (k, vertex_id) in vertices.iter().enumerate() {
                 let prev = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
@@ -71,7 +77,21 @@ impl HeMesh {
             }
         }
 
-        // TODO: handle edges
+        for (_, twins) in edges.iter() {
+            if twins.len() > 2 {
+                return Err(HeMeshError::NonManifold);
+            }
+
+            if twins.len() == 2 {
+                let mut half_edge = mesh.half_edges[twins[0]];
+                half_edge.twin = Some(twins[1]);
+                mesh.half_edges[twins[0]] = half_edge;
+
+                let mut half_edge = mesh.half_edges[twins[1]];
+                half_edge.twin = Some(twins[0]);
+                mesh.half_edges[twins[1]] = half_edge;
+            }
+        }
 
         Ok(mesh)
     }
@@ -79,8 +99,12 @@ impl HeMesh {
     /// Import a half edge mesh from an OBJ file
     pub fn import_obj(path: &str) -> std::io::Result<HeMesh> {
         let soup = ObjReader::new(&path).read()?;
-        let mesh = HeMesh::new(&soup);
-        Ok(mesh)
+        let result = HeMesh::new(&soup);
+
+        match result {
+            Ok(mesh) => Ok(mesh),
+            Err(err) => Err(err.into()),
+        }
     }
 
     /// Export a half edge mesh to an OBJ file
@@ -138,17 +162,17 @@ impl HeMesh {
     }
 
     /// Merge naively with another mesh
-    pub fn merge(&mut self, other: &HeMesh) {
+    pub fn merge(&mut self, _other: &HeMesh) {
         unimplemented!();
     }
 
     /// Extract the subset of faces into a new mesh
-    pub fn extract_face(&self, faces: &[usize]) -> HeMesh {
+    pub fn extract_face(&self, _faces: &[usize]) -> HeMesh {
         unimplemented!();
     }
 
     /// Extract the subset of patches by name into a new mesh
-    pub fn extract_patches(&self, patches: &[&str]) -> HeMesh {
+    pub fn extract_patches(&self, _patches: &[&str]) -> HeMesh {
         unimplemented!();
     }
 }
@@ -239,5 +263,24 @@ impl HePatch {
     /// Get a borrowed reference to the name
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum HeMeshError {
+    NonManifold,
+}
+
+impl std::fmt::Display for HeMeshError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            HeMeshError::NonManifold => write!(f, "non-manifold mesh"),
+        }
+    }
+}
+
+impl From<HeMeshError> for std::io::Error {
+    fn from(err: HeMeshError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
     }
 }
