@@ -21,4 +21,4 @@ Cargo.lock
 #.idea/
 
 # Vim
-*.swp
+*.sw?

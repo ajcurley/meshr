@@ -1,6 +1,9 @@
-use crate::geometry::Vector3;
+use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+use crate::geometry::Vector3;
+use crate::mesh::ObjReader;
+
+#[derive(Debug, Clone, Default)]
 pub struct HeMesh {
     vertices: Vec<HeVertex>,
     faces: Vec<HeFace>,
@@ -11,11 +14,69 @@ pub struct HeMesh {
 impl HeMesh {
     /// Import a half edge mesh from an OBJ file
     pub fn import_obj(path: &str) -> std::io::Result<HeMesh> {
-        unimplemented!();
+        let soup = ObjReader::new(path).read()?;
+        let mut mesh = HeMesh::default();
+        let mut edges = HashMap::<(usize, usize), Vec<usize>>();
+
+        // Index the patches
+        for patch_id in 0..soup.n_patches() {
+            let name = soup.patch(patch_id).to_string();
+            let patch = HePatch { name };
+            mesh.patches.push(patch);
+        }
+
+        // Index the vertices without reference to the half edge
+        // originating from the vertex.
+        for vertex_id in 0..soup.n_vertices() {
+            let position = soup.vertex(vertex_id);
+            let vertex = HeVertex {
+                position,
+                half_edge: 0,
+            };
+            mesh.vertices.push(vertex);
+        }
+
+        // Index the faces and each half edge bounding the face without
+        // reference to their twin half edges.
+        for face_id in 0..soup.n_faces() {
+            let (vertices, patch) = soup.face(face_id);
+            let nv = vertices.len();
+            let nh = mesh.half_edges.len();
+
+            for (k, vertex_id) in vertices.iter().enumerate() {
+                let prev = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
+                let next = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
+
+                let half_edge = HeHalfEdge {
+                    origin: *vertex_id,
+                    face: face_id,
+                    prev: prev,
+                    next: next,
+                    twin: None,
+                };
+
+                mesh.half_edges.push(half_edge);
+
+                if let Some(vertex) = mesh.vertices.get_mut(*vertex_id) {
+                    vertex.half_edge = nh + k;
+                }
+
+                let ki = *vertex_id;
+                let kn = vertices[(k + 1) % nv];
+                let ke = (ki.min(kn), ki.max(kn));
+
+                edges
+                    .entry(ke)
+                    .and_modify(|h| h.push(nh + k))
+                    .or_insert(vec![nh + k]);
+            }
+        }
+
+        Ok(mesh)
     }
 
     /// Export a half edge mesh to an OBJ file
-    pub fn export_obj(path: &str) {
+    pub fn export_obj(_path: &str) {
         unimplemented!();
     }
 
