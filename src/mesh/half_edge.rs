@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::geometry::Vector3;
-use crate::mesh::ObjReader;
+use crate::mesh::{ObjReader, PolygonSoupMesh};
 
 #[derive(Debug, Clone, Default)]
 pub struct HeMesh {
@@ -12,9 +12,8 @@ pub struct HeMesh {
 }
 
 impl HeMesh {
-    /// Import a half edge mesh from an OBJ file
-    pub fn import_obj(path: &str) -> std::io::Result<HeMesh> {
-        let soup = ObjReader::new(path).read()?;
+    /// Construct a half edge mesh from a polygon soup mesh
+    pub fn new(soup: &PolygonSoupMesh) -> Result<HeMesh> {
         let mut mesh = HeMesh::default();
         let mut edges = HashMap::<(usize, usize), Vec<usize>>();
 
@@ -72,6 +71,15 @@ impl HeMesh {
             }
         }
 
+        // TODO: handle edges
+
+        Ok(mesh)
+    }
+
+    /// Import a half edge mesh from an OBJ file
+    pub fn import_obj(path: &str) -> std::io::Result<HeMesh> {
+        let soup = ObjReader::new(&path).read()?;
+        let mesh = HeMesh::new(&soup);
         Ok(mesh)
     }
 
@@ -112,6 +120,36 @@ impl HeMesh {
             .filter(|h| !h.is_boundary())
             .find(|h| self.half_edges[h.twin.unwrap()].origin == h.origin)
             .is_none()
+    }
+
+    /// Get the contiguous faces as components
+    pub fn components(&self) -> Vec<Vec<usize>> {
+        unimplemented!();
+    }
+
+    /// Orient the mesh
+    pub fn orient(&mut self) {
+        unimplemented!();
+    }
+
+    /// Zip any open edges
+    pub fn zip_edges(&mut self) {
+        unimplemented!();
+    }
+
+    /// Merge naively with another mesh
+    pub fn merge(&mut self, other: &HeMesh) {
+        unimplemented!();
+    }
+
+    /// Extract the subset of faces into a new mesh
+    pub fn extract_face(&self, faces: &[usize]) -> HeMesh {
+        unimplemented!();
+    }
+
+    /// Extract the subset of patches by name into a new mesh
+    pub fn extract_patches(&self, patches: &[&str]) -> HeMesh {
+        unimplemented!();
     }
 }
 
