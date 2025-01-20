@@ -207,7 +207,7 @@ impl HeMesh {
     }
 
     /// Get the indices of the vertices shared between two faces
-    pub fn shared_vertices(&self, i: usize, j: usize) -> Vec<usize> {
+    pub fn shared_vertices(&self, _i: usize, _j: usize) -> Vec<usize> {
         unimplemented!();
     }
 
@@ -223,7 +223,7 @@ impl HeMesh {
 
     /// Get the half edge pairs whose incident faces form an angle greater
     /// than the threshold
-    pub fn feature_edges(&self, threshold: f64) -> Vec<(usize, usize)> {
+    pub fn feature_edges(&self, _threshold: f64) -> Vec<(usize, usize)> {
         unimplemented!();
     }
 
@@ -238,14 +238,30 @@ impl HeMesh {
         unimplemented!();
     }
 
-    /// Extract the subset of faces into a new mesh
-    pub fn extract_face(&self, _faces: &[usize]) -> HeMesh {
-        unimplemented!();
+    /// Extract the subset of faces into a new mesh. This is not efficient and should
+    /// only be used when explicitly necessary.
+    pub fn extract_faces(&self, _faces: &[usize]) -> HeMesh {
+        unimplemented!()
     }
 
     /// Extract the subset of patches by index into a new mesh
     pub fn extract_patches(&self, patches: &[usize]) -> HeMesh {
-        unimplemented!();
+        let mut index = HashSet::<usize>::new();
+        let mut faces = Vec::<usize>::new();
+
+        for patch in patches.iter() {
+            index.insert(*patch);
+        }
+
+        for (i, face) in self.faces.iter().enumerate() {
+            if let Some(patch) = face.patch {
+                if index.contains(&patch) {
+                    faces.push(i);
+                }
+            }
+        }
+
+        self.extract_faces(&faces)
     }
 
     /// Extract the subset of patches by name into a new mesh
