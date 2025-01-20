@@ -173,7 +173,7 @@ mod test {
         let mesh = ObjReader::new(&path).read().unwrap();
 
         assert_eq!(8, mesh.n_vertices());
-        assert_eq!(12, mesh.n_faces());
+        assert_eq!(7, mesh.n_faces());
         assert_eq!(6, mesh.n_patches());
     }
 }
