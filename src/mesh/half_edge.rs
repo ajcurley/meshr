@@ -96,8 +96,9 @@ impl HeMesh {
     /// Import a half edge mesh from an OBJ file
     pub fn import_obj(path: &str) -> std::io::Result<HeMesh> {
         let soup = ObjReader::new(&path).read()?;
+        let result = HeMesh::new(&soup);
 
-        match HeMesh::new(&soup) {
+        match result {
             Ok(mesh) => Ok(mesh),
             Err(err) => Err(err.into()),
         }
@@ -220,12 +221,12 @@ impl HeMesh {
     }
 
     /// Merge naively with another mesh
-    pub fn merge(&mut self, other: &HeMesh) {
+    pub fn merge(&mut self, _other: &HeMesh) {
         unimplemented!();
     }
 
     /// Extract the subset of faces into a new mesh
-    pub fn extract_face(&self, faces: &[usize]) -> HeMesh {
+    pub fn extract_face(&self, _faces: &[usize]) -> HeMesh {
         unimplemented!();
     }
 
@@ -342,7 +343,7 @@ impl HePatch {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum HeMeshError {
     NonManifold,
 }
