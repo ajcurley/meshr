@@ -185,7 +185,20 @@ impl HeMesh {
 
     /// Get the axis-aligned bounding box
     pub fn bounds(&self) -> Aabb {
-        unimplemented!();
+        let mut min = Vector3::ones() * f64::INFINITY;
+        let mut max = Vector3::ones() * f64::NEG_INFINITY;
+
+        for vertex in self.vertices.iter() {
+            for i in 0..3 {
+                if vertex.origin[i] < min[i] {
+                    min[i] = vertex.origin[i];
+                } else if vertex.origin[i] > max[i] {
+                    max[i] = vertex.origin[i]
+                }
+            }
+        }
+
+        Aabb::from_bounds(min, max)
     }
 
     /// Get the contiguous faces as components

@@ -12,6 +12,13 @@ impl Aabb {
         Aabb { center, halfsize }
     }
 
+    /// Construct an Aabb from its min/max bounds
+    pub fn from_bounds(min: Vector3, max: Vector3) -> Aabb {
+        let center = (min + max) * 0.5;
+        let halfsize = (max - min) * 0.5;
+        Aabb::new(center, halfsize)
+    }
+
     /// Construct a unit Aabb
     pub fn unit() -> Aabb {
         let center = Vector3::zeros();
