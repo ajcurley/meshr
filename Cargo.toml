@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 flate2 = "1.0"
+nalgebra = "0.33"
 rayon = "1.10"
 
 [dev-dependencies]
