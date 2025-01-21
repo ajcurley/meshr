@@ -47,12 +47,12 @@ impl HeMesh {
                 patch: patch,
             });
 
-            for (k, vertex_id) in vertices.iter().enumerate() {
+            for (k, &vertex_id) in vertices.iter().enumerate() {
                 let prev = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
                 let next = nh + ((k as i32 + nv as i32 + 1) % nv as i32) as usize;
 
                 let half_edge = HeHalfEdge {
-                    origin: *vertex_id,
+                    origin: vertex_id,
                     face: face_id,
                     prev: prev,
                     next: next,
@@ -61,11 +61,11 @@ impl HeMesh {
 
                 mesh.half_edges.push(half_edge);
 
-                if let Some(vertex) = mesh.vertices.get_mut(*vertex_id) {
+                if let Some(vertex) = mesh.vertices.get_mut(vertex_id) {
                     vertex.half_edge = nh + k;
                 }
 
-                let ki = *vertex_id;
+                let ki = vertex_id;
                 let kn = vertices[(k + 1) % nv];
                 let ke = (ki.min(kn), ki.max(kn));
 
@@ -125,13 +125,13 @@ impl HeMesh {
     }
 
     /// Get the neighboring vertex indices to a vertex by index
-    pub fn vertex_neighbors(&self, _index: usize) -> Vec<usize> {
-        unimplemented!();
+    pub fn vertex_neighbors(&self, index: usize) -> Vec<usize> {
+        HeVertexVertexIter::new(self, index).collect()
     }
 
     /// Get the faces using a vertex by index
-    pub fn vertex_faces(&self, _index: usize) -> Vec<usize> {
-        unimplemented!();
+    pub fn vertex_faces(&self, index: usize) -> Vec<usize> {
+        HeVertexFaceIter::new(self, index).collect()
     }
 
     /// Get the number of faces
@@ -430,6 +430,132 @@ impl HePatch {
 }
 
 #[derive(Debug, Clone)]
+pub struct HeVertexOHalfEdgeIter<'a> {
+    mesh: &'a HeMesh,
+    curr: usize,
+    init: usize,
+    count: usize,
+}
+
+impl<'a> HeVertexOHalfEdgeIter<'a> {
+    pub fn new(mesh: &'a HeMesh, vertex: usize) -> HeVertexOHalfEdgeIter<'a> {
+        HeVertexOHalfEdgeIter {
+            mesh: mesh,
+            curr: mesh.vertices[vertex].half_edge,
+            init: mesh.vertices[vertex].half_edge,
+            count: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for HeVertexOHalfEdgeIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count != 0 && self.curr == self.init {
+            return None;
+        }
+
+        let curr = self.curr;
+        let prev = self.mesh.half_edges[curr].prev;
+
+        if let Some(twin) = self.mesh.half_edges[prev].twin {
+            if self.mesh.half_edges[twin].origin != self.mesh.half_edges[self.init].origin {
+                panic!("mesh must be oriented");
+            }
+
+            self.curr = twin;
+            self.count += 1;
+            return Some(curr);
+        }
+
+        panic!("mesh must be closed");
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HeVertexIHalfEdgeIter<'a> {
+    mesh: &'a HeMesh,
+    iter: HeVertexOHalfEdgeIter<'a>,
+}
+
+impl<'a> HeVertexIHalfEdgeIter<'a> {
+    pub fn new(mesh: &'a HeMesh, vertex: usize) -> HeVertexIHalfEdgeIter<'a> {
+        HeVertexIHalfEdgeIter {
+            mesh: mesh,
+            iter: HeVertexOHalfEdgeIter::new(mesh, vertex),
+        }
+    }
+}
+
+impl<'a> Iterator for HeVertexIHalfEdgeIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(curr) = self.iter.next() {
+            return self.mesh.half_edges[curr].twin;
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HeVertexVertexIter<'a> {
+    mesh: &'a HeMesh,
+    iter: HeVertexOHalfEdgeIter<'a>,
+}
+
+impl<'a> HeVertexVertexIter<'a> {
+    pub fn new(mesh: &'a HeMesh, vertex: usize) -> HeVertexVertexIter<'a> {
+        HeVertexVertexIter {
+            mesh: mesh,
+            iter: HeVertexOHalfEdgeIter::new(mesh, vertex),
+        }
+    }
+}
+
+impl<'a> Iterator for HeVertexVertexIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(curr) = self.iter.next() {
+            let next = self.mesh.half_edges[curr].next;
+            return Some(self.mesh.half_edges[next].origin);
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HeVertexFaceIter<'a> {
+    mesh: &'a HeMesh,
+    iter: HeVertexOHalfEdgeIter<'a>,
+}
+
+impl<'a> HeVertexFaceIter<'a> {
+    pub fn new(mesh: &'a HeMesh, vertex: usize) -> HeVertexFaceIter<'a> {
+        HeVertexFaceIter {
+            mesh: mesh,
+            iter: HeVertexOHalfEdgeIter::new(mesh, vertex),
+        }
+    }
+}
+
+impl<'a> Iterator for HeVertexFaceIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(curr) = self.iter.next() {
+            return Some(self.mesh.half_edges[curr].face);
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct HeFaceHalfEdgeIter<'a> {
     mesh: &'a HeMesh,
     curr: usize,
@@ -624,5 +750,145 @@ mod test {
         assert_eq!(iter.next(), Some(1));
         assert_eq!(iter.next(), Some(8));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn vertex_outgoing_half_edge_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexOHalfEdgeIter::new(&mesh, 0);
+
+        assert_eq!(iter.next(), Some(24));
+        assert_eq!(iter.next(), Some(12));
+        assert_eq!(iter.next(), Some(0));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_outgoing_half_edge_iter_open() {
+        let path = "tests/fixtures/box.open.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexOHalfEdgeIter::new(&mesh, 3);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_outgoing_half_edge_iter_inconsistent() {
+        let path = "tests/fixtures/box.inconsistent.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexOHalfEdgeIter::new(&mesh, 1);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    fn vertex_incoming_half_edge_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexIHalfEdgeIter::new(&mesh, 0);
+
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(26));
+        assert_eq!(iter.next(), Some(14));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_incoming_half_edge_iter_open() {
+        let path = "tests/fixtures/box.open.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexIHalfEdgeIter::new(&mesh, 3);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_incoming_half_edge_iter_inconsistent() {
+        let path = "tests/fixtures/box.inconsistent.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexOHalfEdgeIter::new(&mesh, 1);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    fn vertex_vertex_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexVertexIter::new(&mesh, 6);
+
+        assert_eq!(iter.next(), Some(4));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(7));
+        assert_eq!(iter.next(), Some(5));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_vertex_iter_open() {
+        let path = "tests/fixtures/box.open.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexVertexIter::new(&mesh, 3);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_vertex_iter_inconsistent() {
+        let path = "tests/fixtures/box.inconsistent.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexVertexIter::new(&mesh, 1);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    fn vertex_face_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexFaceIter::new(&mesh, 6);
+
+        assert_eq!(iter.next(), Some(9));
+        assert_eq!(iter.next(), Some(6));
+        assert_eq!(iter.next(), Some(7));
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_face_iter_open() {
+        let path = "tests/fixtures/box.open.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexFaceIter::new(&mesh, 3);
+
+        iter.next();
+        iter.next();
+    }
+
+    #[test]
+    #[should_panic]
+    fn vertex_face_iter_inconsistent() {
+        let path = "tests/fixtures/box.inconsistent.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeVertexFaceIter::new(&mesh, 1);
+
+        iter.next();
+        iter.next();
     }
 }
