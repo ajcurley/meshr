@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::geometry::{Aabb, Vector3};
 use crate::mesh::{ObjReader, PolygonSoupMesh};
@@ -49,7 +49,7 @@ impl HeMesh {
 
             for (k, vertex_id) in vertices.iter().enumerate() {
                 let prev = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
-                let next = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
+                let next = nh + ((k as i32 + nv as i32 + 1) % nv as i32) as usize;
 
                 let half_edge = HeHalfEdge {
                     origin: *vertex_id,
@@ -124,6 +124,16 @@ impl HeMesh {
         self.vertices[index]
     }
 
+    /// Get the neighboring vertex indices to a vertex by index
+    pub fn vertex_neighbors(&self, _index: usize) -> Vec<usize> {
+        unimplemented!();
+    }
+
+    /// Get the faces using a vertex by index
+    pub fn vertex_faces(&self, _index: usize) -> Vec<usize> {
+        unimplemented!();
+    }
+
     /// Get the number of faces
     pub fn n_faces(&self) -> usize {
         self.faces.len()
@@ -137,6 +147,27 @@ impl HeMesh {
     /// Get a face by index
     pub fn face(&self, index: usize) -> HeFace {
         self.faces[index]
+    }
+
+    /// Get the vertices used by a face by index
+    pub fn face_vertices(&self, index: usize) -> Vec<usize> {
+        HeFaceVertexIter::new(self, index).collect()
+    }
+
+    /// Get the neighboring face indices to a face by index
+    pub fn face_neighbors(&self, index: usize) -> Vec<usize> {
+        HeFaceFaceIter::new(self, index).collect()
+    }
+
+    /// Get the half edges defining the boundary of a face by index
+    pub fn face_half_edges(&self, index: usize) -> Vec<usize> {
+        HeFaceHalfEdgeIter::new(self, index).collect()
+    }
+
+    /// Flip a face by index. This reverses all half edges defining the boundary
+    /// of the face to flip the orientation.
+    fn flip_face(&mut self, _index: usize) {
+        unimplemented!();
     }
 
     /// Get the number of half edges
@@ -183,6 +214,12 @@ impl HeMesh {
             .is_none()
     }
 
+    /// Check if two faces are consistently oriented. If the two faces are
+    /// not neighbors, this returns false.
+    pub fn is_face_consistent(&self, _i: usize, _j: usize) -> bool {
+        unimplemented!();
+    }
+
     /// Get the axis-aligned bounding box
     pub fn bounds(&self) -> Aabb {
         let mut min = Vector3::ones() * f64::INFINITY;
@@ -213,7 +250,27 @@ impl HeMesh {
 
     /// Orient the mesh
     pub fn orient(&mut self) {
-        unimplemented!();
+        let mut oriented = vec![false; self.n_faces()];
+
+        for component in self.components() {
+            let mut queue = VecDeque::from([component[0]]);
+
+            while let Some(current) = queue.pop_front() {
+                if !oriented[current] {
+                    oriented[current] = true;
+
+                    for neighbor in self.face_neighbors(current) {
+                        if !oriented[current] {
+                            queue.push_back(neighbor);
+
+                            if !self.is_face_consistent(current, neighbor) {
+                                self.flip_face(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Zip any open edges. This may result in a non-manifold mesh.
@@ -373,6 +430,97 @@ impl HePatch {
 }
 
 #[derive(Debug, Clone)]
+pub struct HeFaceHalfEdgeIter<'a> {
+    mesh: &'a HeMesh,
+    curr: usize,
+    init: usize,
+    count: usize,
+}
+
+impl<'a> HeFaceHalfEdgeIter<'a> {
+    pub fn new(mesh: &'a HeMesh, face: usize) -> HeFaceHalfEdgeIter {
+        HeFaceHalfEdgeIter {
+            mesh: mesh,
+            init: mesh.faces[face].half_edge,
+            curr: mesh.faces[face].half_edge,
+            count: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for HeFaceHalfEdgeIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count != 0 && self.curr == self.init {
+            return None;
+        }
+
+        let curr = self.curr;
+        self.curr = self.mesh.half_edges[self.curr].next;
+        self.count += 1;
+
+        Some(curr)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HeFaceVertexIter<'a> {
+    mesh: &'a HeMesh,
+    iter: HeFaceHalfEdgeIter<'a>,
+}
+
+impl<'a> HeFaceVertexIter<'a> {
+    pub fn new(mesh: &'a HeMesh, face: usize) -> HeFaceVertexIter<'a> {
+        HeFaceVertexIter {
+            mesh: mesh,
+            iter: HeFaceHalfEdgeIter::new(mesh, face),
+        }
+    }
+}
+
+impl<'a> Iterator for HeFaceVertexIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(index) = self.iter.next() {
+            return Some(self.mesh.half_edges[index].origin);
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HeFaceFaceIter<'a> {
+    mesh: &'a HeMesh,
+    iter: HeFaceHalfEdgeIter<'a>,
+}
+
+impl<'a> HeFaceFaceIter<'a> {
+    pub fn new(mesh: &'a HeMesh, face: usize) -> HeFaceFaceIter<'a> {
+        HeFaceFaceIter {
+            mesh: mesh,
+            iter: HeFaceHalfEdgeIter::new(mesh, face),
+        }
+    }
+}
+
+impl<'a> Iterator for HeFaceFaceIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(curr) = self.iter.next() {
+            if let Some(twin) = self.mesh.half_edges[curr].twin {
+                return Some(self.mesh.half_edges[twin].face);
+            }
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum HeMeshError {
     NonManifold,
 }
@@ -440,5 +588,41 @@ mod test {
         let result = HeMesh::import_obj(&path);
 
         assert!(result.is_err_and(|e| e.to_string() == "non-manifold mesh"));
+    }
+
+    #[test]
+    fn face_half_edge_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeFaceHalfEdgeIter::new(&mesh, 0);
+
+        assert_eq!(iter.next(), Some(0));
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn face_vertex_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeFaceVertexIter::new(&mesh, 0);
+
+        assert_eq!(iter.next(), Some(0));
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn face_face_iter() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+        let mut iter = HeFaceFaceIter::new(&mesh, 0);
+
+        assert_eq!(iter.next(), Some(4));
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), Some(8));
+        assert_eq!(iter.next(), None);
     }
 }
