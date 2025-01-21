@@ -106,6 +106,7 @@ impl HeMesh {
 
     /// Export a half edge mesh to an OBJ file
     pub fn export_obj(_path: &str) {
+        // TODO: implement
         unimplemented!();
     }
 
@@ -167,6 +168,7 @@ impl HeMesh {
     /// Flip a face by index. This reverses all half edges defining the boundary
     /// of the face to flip the orientation.
     fn flip_face(&mut self, _index: usize) {
+        // TODO: implement
         unimplemented!();
     }
 
@@ -217,6 +219,7 @@ impl HeMesh {
     /// Check if two faces are consistently oriented. If the two faces are
     /// not neighbors, this returns false.
     pub fn is_face_consistent(&self, _i: usize, _j: usize) -> bool {
+        // TODO: implement
         unimplemented!();
     }
 
@@ -240,11 +243,13 @@ impl HeMesh {
 
     /// Get the contiguous faces as components
     pub fn components(&self) -> Vec<Vec<usize>> {
+        // TODO: implement
         unimplemented!();
     }
 
     /// Get the indices of the vertices shared between two faces
     pub fn shared_vertices(&self, _i: usize, _j: usize) -> Vec<usize> {
+        // TODO: implement
         unimplemented!();
     }
 
@@ -275,29 +280,34 @@ impl HeMesh {
 
     /// Zip any open edges. This may result in a non-manifold mesh.
     pub fn zip_edges(&mut self) -> Result<(), HeMeshError> {
+        // TODO: implement
         unimplemented!();
     }
 
     /// Get the half edge pairs whose incident faces form an angle greater
     /// than the threshold
     pub fn feature_edges(&self, _threshold: f64) -> Vec<(usize, usize)> {
+        // TODO: implement
         unimplemented!();
     }
 
     /// Get the principal axes defining the dominant orthogonal coordinate
     /// system local to the mesh vertices.
     pub fn principal_axes(&self) -> Vec<Vector3> {
+        // TODO: implement
         unimplemented!();
     }
 
     /// Merge naively with another mesh
     pub fn merge(&mut self, _other: &HeMesh) {
+        // TODO: implement
         unimplemented!();
     }
 
     /// Extract the subset of faces into a new mesh. This is not efficient and should
     /// only be used when explicitly necessary.
     pub fn extract_faces(&self, _faces: &[usize]) -> HeMesh {
+        // TODO: implement
         unimplemented!()
     }
 
