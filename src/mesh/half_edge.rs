@@ -167,9 +167,26 @@ impl HeMesh {
 
     /// Flip a face by index. This reverses all half edges defining the boundary
     /// of the face to flip the orientation.
-    fn flip_face(&mut self, _index: usize) {
-        // TODO: implement
-        unimplemented!();
+    fn flip_face(&mut self, index: usize) {
+        let half_edge_ids = self.face_half_edges(index);
+        let mut half_edges = Vec::<HeHalfEdge>::new();
+
+        for &j in half_edge_ids.iter() {
+            let half_edge = self.half_edges[j];
+            let origin = self.half_edges[half_edge.next].origin;
+
+            half_edges.push(HeHalfEdge {
+                origin: origin,
+                face: half_edge.face,
+                prev: half_edge.next,
+                next: half_edge.prev,
+                twin: half_edge.twin,
+            })
+        }
+
+        for (i, &j) in half_edge_ids.iter().enumerate() {
+            self.half_edges[j] = half_edges[i];
+        }
     }
 
     /// Get the number of half edges
@@ -900,5 +917,27 @@ mod test {
 
         iter.next();
         iter.next();
+    }
+
+    #[test]
+    fn flip_face() {
+        let path = "tests/fixtures/box.obj";
+        let mut mesh = HeMesh::import_obj(&path).unwrap();
+        assert!(mesh.is_closed());
+        assert!(mesh.is_consistent());
+
+        let vertices = mesh.face_vertices(0);
+        assert_eq!(vertices[0], 0);
+        assert_eq!(vertices[1], 1);
+        assert_eq!(vertices[2], 2);
+
+        mesh.flip_face(0);
+        assert!(mesh.is_closed());
+        assert!(!mesh.is_consistent());
+
+        let vertices = mesh.face_vertices(0);
+        assert_eq!(vertices[0], 1);
+        assert_eq!(vertices[1], 0);
+        assert_eq!(vertices[2], 2);
     }
 }
