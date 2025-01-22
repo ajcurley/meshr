@@ -235,9 +235,24 @@ impl HeMesh {
 
     /// Check if two faces are consistently oriented. If the two faces are
     /// not neighbors, this returns false.
-    pub fn is_face_consistent(&self, _i: usize, _j: usize) -> bool {
-        // TODO: implement
-        unimplemented!();
+    pub fn is_face_consistent(&self, i: usize, j: usize) -> bool {
+        let mut index = HashSet::new();
+
+        for k in self.face_half_edges(i) {
+            index.insert(k);
+        }
+
+        for k in self.face_half_edges(j) {
+            let half_edge = self.half_edges[k];
+
+            if let Some(twin) = half_edge.twin {
+                if index.contains(&twin) {
+                    return self.half_edges[twin].origin != half_edge.origin;
+                }
+            }
+        }
+
+        false
     }
 
     /// Get the axis-aligned bounding box
@@ -939,5 +954,19 @@ mod test {
         assert_eq!(vertices[0], 1);
         assert_eq!(vertices[1], 0);
         assert_eq!(vertices[2], 2);
+    }
+
+    #[test]
+    fn is_face_consistent() {
+        let path = "tests/fixtures/box.obj";
+        let mut mesh = HeMesh::import_obj(&path).unwrap();
+
+        assert!(mesh.is_face_consistent(0, 1));
+        assert!(mesh.is_face_consistent(1, 0));
+
+        mesh.flip_face(1);
+
+        assert!(!mesh.is_face_consistent(0, 1));
+        assert!(!mesh.is_face_consistent(1, 0));
     }
 }
