@@ -290,8 +290,32 @@ impl HeMesh {
 
     /// Get the contiguous faces as components
     pub fn components(&self) -> Vec<Vec<usize>> {
-        // TODO: implement
-        unimplemented!();
+        let mut components = vec![];
+        let mut visited = vec![false; self.n_faces()];
+
+        for next in 0..self.n_faces() {
+            if !visited[next] {
+                let mut component = vec![];
+                let mut queue = VecDeque::from([next]);
+
+                while let Some(current) = queue.pop_front() {
+                    if !visited[current] {
+                        visited[current] = true;
+                        component.push(current);
+
+                        for neighbor in HeFaceFaceIter::new(self, current) {
+                            if !visited[neighbor] {
+                                queue.push_back(neighbor);
+                            }
+                        }
+                    }
+                }
+
+                components.push(component);
+            }
+        }
+
+        components
     }
 
     /// Get the indices of the vertices shared between two faces
@@ -364,10 +388,57 @@ impl HeMesh {
         unimplemented!();
     }
 
-    /// Merge naively with another mesh
-    pub fn merge(&mut self, _other: &HeMesh) {
-        // TODO: implement
-        unimplemented!();
+    /// Merge naively with another mesh. The receiver mesh is updated in place
+    /// with the elements from the target mesh.
+    pub fn merge(&mut self, other: &HeMesh) {
+        let mut index_patches = HashMap::<String, usize>::new();
+
+        for (i, patch) in self.patches.iter().enumerate() {
+            index_patches.insert(patch.name.to_string(), i);
+        }
+
+        for patch in other.patches.iter() {
+            if !index_patches.contains_key(patch.name()) {
+                index_patches.insert(patch.name.clone(), self.patches.len());
+                self.patches.push(patch.clone());
+            }
+        }
+
+        let offset_v = self.n_vertices();
+        let offset_f = self.n_faces();
+        let offset_h = self.n_half_edges();
+
+        for vertex in other.vertices.iter() {
+            let mut vertex = *vertex;
+            vertex.half_edge += offset_h;
+            self.vertices.push(vertex);
+        }
+
+        for face in other.faces.iter() {
+            let mut face = *face;
+            face.half_edge += offset_h;
+
+            if let Some(patch) = face.patch {
+                let name = other.patches[patch].name();
+                face.patch = Some(index_patches[name]);
+            }
+
+            self.faces.push(face);
+        }
+
+        for half_edge in other.half_edges.iter() {
+            let mut half_edge = *half_edge;
+            half_edge.origin += offset_v;
+            half_edge.face += offset_f;
+            half_edge.prev += offset_h;
+            half_edge.next += offset_h;
+
+            if let Some(twin) = half_edge.twin {
+                half_edge.twin = Some(twin + offset_h);
+            }
+
+            self.half_edges.push(half_edge);
+        }
     }
 
     /// Extract the subset of faces into a new mesh. This is not efficient and should
@@ -1010,7 +1081,34 @@ mod test {
         let mesh = HeMesh::import_obj(&path).unwrap();
 
         let features = mesh.feature_edges(30. * std::f64::consts::PI / 180.);
-        
+
         assert_eq!(features.len(), 12);
+    }
+
+    #[test]
+    fn test_components_single() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+
+        let components = mesh.components();
+
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].len(), mesh.n_faces());
+    }
+
+    #[test]
+    fn test_components_multiple() {
+        let path = "tests/fixtures/box.obj";
+        let mut mesh = HeMesh::import_obj(&path).unwrap();
+
+        let path = "tests/fixtures/box.obj";
+        let other = HeMesh::import_obj(&path).unwrap();
+        mesh.merge(&other);
+
+        let components = mesh.components();
+
+        assert_eq!(components.len(), 2);
+        assert_eq!(components[0].len(), 12);
+        assert_eq!(components[1].len(), 12);
     }
 }
