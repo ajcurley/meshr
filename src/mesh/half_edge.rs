@@ -150,6 +150,21 @@ impl HeMesh {
         self.faces[index]
     }
 
+    /// Get the normal vector of a face
+    pub fn face_normal(&self, index: usize) -> Vector3 {
+        let mut normal = Vector3::zeros();
+        let vertices = self.face_vertices(index);
+        let n = vertices.len();
+
+        for i in 0..n {
+            let p = self.vertices[vertices[i]].origin;
+            let q = self.vertices[vertices[(i + 1) % n]].origin;
+            normal += Vector3::cross(&p, &q);
+        }
+
+        normal.unit()
+    }
+
     /// Get the vertices used by a face by index
     pub fn face_vertices(&self, index: usize) -> Vec<usize> {
         HeFaceVertexIter::new(self, index).collect()
@@ -317,10 +332,29 @@ impl HeMesh {
     }
 
     /// Get the half edge pairs whose incident faces form an angle greater
-    /// than the threshold
-    pub fn feature_edges(&self, _threshold: f64) -> Vec<(usize, usize)> {
-        // TODO: implement
-        unimplemented!();
+    /// than the threshold (in radians)
+    pub fn feature_edges(&self, threshold: f64) -> Vec<(usize, usize)> {
+        let mut visited = vec![false; self.n_half_edges()];
+        let mut features = vec![];
+
+        for (i, half_edge) in self.half_edges.iter().enumerate() {
+            if let Some(j) = half_edge.twin {
+                if !visited[i] && !visited[j] {
+                    visited[i] = true;
+                    visited[j] = true;
+                    let twin = self.half_edges[j];
+
+                    let u = self.face_normal(half_edge.face);
+                    let v = self.face_normal(twin.face);
+
+                    if Vector3::angle(&u, &v) > threshold {
+                        features.push((i, j));
+                    }
+                }
+            }
+        }
+
+        features
     }
 
     /// Get the principal axes defining the dominant orthogonal coordinate
@@ -968,5 +1002,15 @@ mod test {
 
         assert!(!mesh.is_face_consistent(0, 1));
         assert!(!mesh.is_face_consistent(1, 0));
+    }
+
+    #[test]
+    fn test_feature_edges() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+
+        let features = mesh.feature_edges(30. * std::f64::consts::PI / 180.);
+        
+        assert_eq!(features.len(), 12);
     }
 }

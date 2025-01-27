@@ -34,6 +34,13 @@ impl Vector3 {
         Vector3::new(i, j, k)
     }
 
+    /// Compute the angle (in radians) between u and v
+    pub fn angle(u: &Vector3, v: &Vector3) -> f64 {
+        (Vector3::dot(&u, &v) / (u.mag() * v.mag()))
+            .clamp(-1., 1.)
+            .acos()
+    }
+
     /// Get the magnitude
     pub fn mag(&self) -> f64 {
         Vector3::dot(self, self).sqrt()
