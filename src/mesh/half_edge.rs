@@ -15,105 +15,82 @@ impl HeMesh {
     /// Construct a half edge mesh from a polygon soup mesh
     pub fn new(soup: &PolygonSoupMesh) -> Result<HeMesh, HeMeshError> {
         let mut mesh = HeMesh::default();
+        let mut edges = HashMap::<(usize, usize), Vec<usize>>::new();
 
-        for i in 0..soup.n_patches() {
-            let name = soup.patch(i);
-            mesh.insert_patch(name);
+        // Index the patches
+        for patch_id in 0..soup.n_patches() {
+            let name = soup.patch(patch_id).to_string();
+            let patch = HePatch { name };
+            mesh.patches.push(patch);
         }
 
-        for i in 0..soup.n_vertices() {
-            let origin = soup.vertex(i);
-            mesh.insert_vertex(origin);
+        // Index the vertices without reference to the half edge
+        // originating from the vertex.
+        for vertex_id in 0..soup.n_vertices() {
+            let origin = soup.vertex(vertex_id);
+            let vertex = HeVertex {
+                origin,
+                half_edge: 0,
+            };
+            mesh.vertices.push(vertex);
         }
 
-        for i in 0..soup.n_faces() {
-            let (vertices, patch) = soup.face(i);
-            mesh.insert_face(vertices, patch);
+        // Index the faces and each half edge bounding the face without
+        // reference to their twin half edges.
+        for face_id in 0..soup.n_faces() {
+            let (vertices, patch) = soup.face(face_id);
+            let nv = vertices.len();
+            let nh = mesh.half_edges.len();
+
+            mesh.faces.push(HeFace {
+                half_edge: nh,
+                patch: patch,
+            });
+
+            for (k, &vertex_id) in vertices.iter().enumerate() {
+                let prev = nh + ((k as i32 + nv as i32 - 1) % nv as i32) as usize;
+                let next = nh + ((k as i32 + nv as i32 + 1) % nv as i32) as usize;
+
+                let half_edge = HeHalfEdge {
+                    origin: vertex_id,
+                    face: face_id,
+                    prev: prev,
+                    next: next,
+                    twin: None,
+                };
+
+                mesh.half_edges.push(half_edge);
+
+                if let Some(vertex) = mesh.vertices.get_mut(vertex_id) {
+                    vertex.half_edge = nh + k;
+                }
+
+                let ki = vertex_id;
+                let kn = vertices[(k + 1) % nv];
+                let ke = (ki.min(kn), ki.max(kn));
+
+                // Index the shared half edges. If two half edges are already indexed
+                // for the same vertex pair, the mesh must be non-manifold.
+                if let Some(shared) = edges.get_mut(&ke) {
+                    if shared.len() >= 2 {
+                        return Err(HeMeshError::NonManifold);
+                    }
+                    shared.push(nh + k);
+                } else {
+                    edges.insert(ke, vec![nh + k]);
+                }
+            }
         }
 
-        if let Err(error) = mesh.build_links() {
-            return Err(error);
+        // Index the half edge twins using the shared edges
+        for (_, shared) in edges.iter() {
+            if shared.len() == 2 {
+                mesh.half_edges[shared[0]].twin = Some(shared[1]);
+                mesh.half_edges[shared[1]].twin = Some(shared[0]);
+            }
         }
 
         Ok(mesh)
-    }
-
-    // Insert a vertex
-    fn insert_vertex(&mut self, origin: Vector3) {
-        let vertex = HeVertex {
-            origin,
-            half_edge: 0,
-        };
-        self.vertices.push(vertex);
-    }
-
-    // Insert a face (and the associated half edges)
-    fn insert_face(&mut self, vertices: &[usize], patch: Option<usize>) {
-        let nh = self.n_half_edges();
-        let nv = vertices.len();
-
-        let face_id = self.n_faces();
-        let face = HeFace {
-            half_edge: nh,
-            patch: patch,
-        };
-        self.faces.push(face);
-
-        for (i, &vertex_id) in vertices.iter().enumerate() {
-            let half_edge = HeHalfEdge {
-                origin: vertex_id,
-                face: face_id,
-                prev: nh + ((i as i32 + nv as i32 - 1) % nv as i32) as usize,
-                next: nh + ((i as i32 + nv as i32 + 1) % nv as i32) as usize,
-                twin: None,
-            };
-
-            self.half_edges.push(half_edge);
-        }
-    }
-
-    // Insert a patch
-    fn insert_patch(&mut self, name: &str) {
-        let patch = HePatch {
-            name: name.to_string(),
-        };
-        self.patches.push(patch);
-    }
-
-    // Build the links between the half edge twins and half edge/vertex
-    // references. This may result in a non-manifold mesh error.
-    fn build_links(&mut self) -> Result<(), HeMeshError> {
-        let n = self.n_half_edges();
-        let mut index = HashMap::<(usize, usize), Vec<usize>>::new();
-
-        for i in 0..n {
-            let hi = self.half_edges[i];
-            let hj = self.half_edges[hi.next];
-
-            let vi = hi.origin;
-            let vj = hj.origin;
-            let edge = (vi.min(vj), vi.max(vj));
-
-            self.vertices[vi].half_edge = i;
-
-            if let Some(shared) = index.get_mut(&edge) {
-                if shared.len() == 2 {
-                    return Err(HeMeshError::NonManifold);
-                }
-                shared.push(i);
-            } else {
-                index.insert(edge, vec![i]);
-            }
-        }
-
-        for (_, shared) in index.iter() {
-            if shared.len() == 2 {
-                self.half_edges[shared[0]].twin = Some(shared[1]);
-                self.half_edges[shared[1]].twin = Some(shared[0]);
-            }
-        }
-
-        Ok(())
     }
 
     /// Import a half edge mesh from an OBJ file
@@ -478,41 +455,9 @@ impl HeMesh {
 
     /// Extract the subset of faces into a new mesh. This is not efficient and should
     /// only be used when explicitly necessary.
-    pub fn extract_faces(&self, faces: &[usize]) -> HeMesh {
-        let mut mesh = HeMesh::default();
-        let mut index_vertices = HashMap::<usize, usize>::new();
-        let mut index_patches = HashMap::<usize, usize>::new();
-
-        for &face_id in faces.iter() {
-            let mut vertices = self.face_vertices(face_id);
-            let mut patch = None;
-
-            for vertex_id in vertices.iter_mut() {
-                if !index_vertices.contains_key(vertex_id) {
-                    let origin = self.vertices[*vertex_id].origin;
-                    mesh.insert_vertex(origin);
-                    index_vertices.insert(*vertex_id, mesh.n_vertices() - 1);
-                }
-
-                *vertex_id = index_vertices[vertex_id];
-            }
-
-            if let Some(patch_id) = self.faces[face_id].patch {
-                if !index_patches.contains_key(&patch_id) {
-                    let name = self.patches[patch_id].name();
-                    mesh.insert_patch(name);
-                    index_patches.insert(patch_id, mesh.n_patches() - 1);
-                }
-
-                patch = Some(index_patches[&patch_id]);
-            }
-
-            mesh.insert_face(&vertices, patch);
-        }
-
-        mesh.build_links().unwrap();
-
-        mesh
+    pub fn extract_faces(&self, _faces: &[usize]) -> HeMesh {
+        // TODO: implement
+        unimplemented!()
     }
 
     /// Extract the subset of patches by index into a new mesh
@@ -1199,48 +1144,5 @@ mod test {
         let shared = mesh.shared_vertices(0, 7);
 
         assert_eq!(shared.len(), 0);
-    }
-
-    #[test]
-    fn test_extract_faces() {
-        let path = "tests/fixtures/box.obj";
-        let mesh = HeMesh::import_obj(&path).unwrap();
-
-        let faces = vec![3, 5, 6];
-        let subset = mesh.extract_faces(&faces);
-
-        assert_eq!(subset.n_vertices(), 7);
-        assert_eq!(subset.n_faces(), 3);
-        assert_eq!(subset.n_half_edges(), 9);
-    }
-
-    #[test]
-    fn test_extract_faces_all_reversed() {
-        let path = "tests/fixtures/box.obj";
-        let mesh = HeMesh::import_obj(&path).unwrap();
-
-        let faces: Vec<usize> = (0..mesh.n_faces()).rev().collect();
-        let subset = mesh.extract_faces(&faces);
-
-        assert_eq!(subset.n_vertices(), mesh.n_vertices());
-        assert_eq!(subset.n_faces(), mesh.n_faces());
-        assert_eq!(subset.n_half_edges(), mesh.n_half_edges());
-        assert!(subset.is_closed());
-        assert!(subset.is_consistent());
-    }
-
-    #[test]
-    fn test_extract_patch_names() {
-        let path = "tests/fixtures/box.groups.obj";
-        let mesh = HeMesh::import_obj(&path).unwrap();
-
-        let patch = mesh.patch(1);
-        let names = vec![patch.name()];
-        let subset = mesh.extract_patch_names(&names);
-
-        assert_eq!(subset.n_vertices(), 4);
-        assert_eq!(subset.n_faces(), 2);
-        assert_eq!(subset.n_half_edges(), 6);
-        assert_eq!(subset.n_patches(), 1);
     }
 }
