@@ -319,9 +319,21 @@ impl HeMesh {
     }
 
     /// Get the indices of the vertices shared between two faces
-    pub fn shared_vertices(&self, _i: usize, _j: usize) -> Vec<usize> {
-        // TODO: implement
-        unimplemented!();
+    pub fn shared_vertices(&self, i: usize, j: usize) -> Vec<usize> {
+        let mut index = HashSet::<usize>::new();
+        let mut vertices = vec![];
+
+        for vertex in self.face_vertices(i) {
+            index.insert(vertex);
+        }
+
+        for vertex in self.face_vertices(j) {
+            if index.contains(&vertex) {
+                vertices.push(vertex);
+            }
+        }
+
+        vertices
     }
 
     /// Orient the mesh
@@ -1110,5 +1122,27 @@ mod test {
         assert_eq!(components.len(), 2);
         assert_eq!(components[0].len(), 12);
         assert_eq!(components[1].len(), 12);
+    }
+
+    #[test]
+    fn test_shared_vertices() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+
+        let shared = mesh.shared_vertices(0, 1);
+
+        assert_eq!(shared.len(), 2);
+        assert_eq!(shared[0], 1);
+        assert_eq!(shared[1], 2);
+    }
+
+    #[test]
+    fn test_shared_vertices_none() {
+        let path = "tests/fixtures/box.obj";
+        let mesh = HeMesh::import_obj(&path).unwrap();
+
+        let shared = mesh.shared_vertices(0, 7);
+
+        assert_eq!(shared.len(), 0);
     }
 }
