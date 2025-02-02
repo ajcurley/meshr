@@ -5,4 +5,4 @@ pub mod wavefront;
 // Re-exports
 pub use half_edge::HeMesh;
 pub use polygon_soup::PolygonSoupMesh;
-pub use wavefront::ObjReader;
+pub use wavefront::{ObjReader, ObjWriter};

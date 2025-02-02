@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::geometry::{Aabb, Vector3};
-use crate::mesh::{ObjReader, PolygonSoupMesh};
+use crate::mesh::{ObjReader, ObjWriter, PolygonSoupMesh};
 
 #[derive(Debug, Clone, Default)]
 pub struct HeMesh {
@@ -128,9 +128,25 @@ impl HeMesh {
     }
 
     /// Export a half edge mesh to an OBJ file
-    pub fn export_obj(_path: &str) {
-        // TODO: implement
-        unimplemented!();
+    pub fn export_obj(&self, path: &str) -> std::io::Result<()> {
+        let vertices: Vec<Vector3> = self.vertices().iter().map(|v| v.origin).collect();
+
+        let faces: Vec<Vec<usize>> = (0..self.n_faces()).map(|f| self.face_vertices(f)).collect();
+
+        let face_groups: Vec<Option<usize>> = self.faces().iter().map(|f| f.patch).collect();
+
+        let groups: Vec<String> = self
+            .patches()
+            .iter()
+            .map(|p| p.name().to_string())
+            .collect();
+
+        let mut writer = ObjWriter::new();
+        writer.set_vertices(vertices);
+        writer.set_faces(faces);
+        writer.set_face_groups(face_groups);
+        writer.set_groups(groups);
+        writer.write(path)
     }
 
     /// Get the number of vertices
