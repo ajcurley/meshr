@@ -1,4 +1,4 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Vector3 {
     x: f64,
     y: f64,
@@ -34,6 +34,21 @@ impl Vector3 {
         Vector3::new(i, j, k)
     }
 
+    /// Get the x-component
+    pub fn x(&self) -> f64 {
+        self.x
+    }
+
+    /// Get the y-component
+    pub fn y(&self) -> f64 {
+        self.y
+    }
+
+    /// Get the z-component
+    pub fn z(&self) -> f64 {
+        self.z
+    }
+
     /// Compute the angle (in radians) between u and v
     pub fn angle(u: &Vector3, v: &Vector3) -> f64 {
         (Vector3::dot(&u, &v) / (u.mag() * v.mag()))
@@ -54,6 +69,41 @@ impl Vector3 {
     /// Get the inverse
     pub fn inv(&self) -> Vector3 {
         1. / *self
+    }
+
+    /// Get the absolute vector
+    pub fn abs(&self) -> Vector3 {
+        Vector3::new(self.x.abs(), self.y.abs(), self.z.abs())
+    }
+
+    /// Get the index of the minimal component
+    pub fn min_index(&self) -> usize {
+        let mut index = 0;
+        let mut value = self.x;
+
+        for i in 1..3 {
+            if self[i] < value {
+                index = i;
+                value = self[i];
+            }
+        }
+
+        index
+    }
+
+    /// Get the index of the maximal component
+    pub fn max_index(&self) -> usize {
+        let mut index = 0;
+        let mut value = self.x;
+
+        for i in 1..3 {
+            if self[i] > value {
+                index = i;
+                value = self[i];
+            }
+        }
+
+        index
     }
 }
 

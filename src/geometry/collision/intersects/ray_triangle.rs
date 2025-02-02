@@ -1,8 +1,5 @@
 use crate::geometry::collision::Intersects;
-use crate::geometry::{Ray, Triangle, Vector3};
-
-/// Geometric tolerance for an intersection
-const EPSILON: f64 = 1e-8;
+use crate::geometry::{Ray, Triangle, Vector3, EPSILON};
 
 /// Check for a Ray/Triangle spatial intersection
 fn intersects_ray_triangle(r: &Ray, t: &Triangle) -> bool {
