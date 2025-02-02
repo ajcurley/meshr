@@ -1,50 +1,9 @@
 use crate::geometry::collision::Intersection;
-use crate::geometry::{Line, Triangle, Vector3};
+use crate::geometry::{Line, Triangle};
 
 /// Compute the intersection line between two triangles. If the intersection
 /// represents a point, the line will be comprised of equal points.
 pub fn intersection_triangle_triangle(t0: &Triangle, t1: &Triangle) -> Option<Line> {
-    // Check for coplanrity
-    // Overlap test using SAT
-    // Normals/cross products test
-    // Edge/edge intersection
-
-    // Test for coplanar triangles
-    if Triangle::is_coplanar(t0, t1) {
-        return None;
-    }
-
-    // Test the triangle normals and cross products with the edges for overlap using
-    // the Separating Axis Theorem.
-    let n0 = t0.normal();
-    let n1 = t1.normal();
-
-    if n0.mag() > 0. && !test_overlap(n0, &t0, &t1) {
-        return None;
-    }
-
-    if n1.mag() > 0. && !test_overlap(n1, &t0, &t1) {
-        return None;
-    }
-
-    for edge in t0.edges().iter() {
-        let axis = Vector3::cross(&edge.direction(), &n1);
-
-        if axis.mag() > 0. && !test_overlap(axis, &t0, &t1) {
-            return None;
-        }
-    }
-
-    for edge in t1.edges().iter() {
-        let axis = Vector3::cross(&edge.direction(), &n0);
-
-        if axis.mag() > 0. && !test_overlap(axis, &t0, &t1) {
-            return None;
-        }
-    }
-
-    // Since the overlap tests pass, it is known that there is an intersection or at
-    // least a significant overlap. Compute the edge/triangle intersections.
     let mut points = vec![];
 
     for edge in t0.edges().iter() {
@@ -66,26 +25,6 @@ pub fn intersection_triangle_triangle(t0: &Triangle, t1: &Triangle) -> Option<Li
     }
 }
 
-/// Test for overlap between the two triangles along an axis
-fn test_overlap(axis: Vector3, t0: &Triangle, t1: &Triangle) -> bool {
-    let mut p0_min = std::f64::INFINITY;
-    let mut p0_max = std::f64::NEG_INFINITY;
-    let mut p1_min = std::f64::INFINITY;
-    let mut p1_max = std::f64::NEG_INFINITY;
-
-    for i in 0..3 {
-        let d0 = Vector3::dot(&t0[i], &axis);
-        p0_min = p0_min.min(d0);
-        p0_max = p0_max.max(d0);
-
-        let d1 = Vector3::dot(&t1[i], &axis);
-        p1_min = p1_min.min(d1);
-        p1_max = p1_max.max(d1);
-    }
-
-    p0_max >= p1_min && p1_max >= p0_min
-}
-
 impl Intersection<Triangle> for Triangle {
     type Output = Line;
 
@@ -97,6 +36,7 @@ impl Intersection<Triangle> for Triangle {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::geometry::Vector3;
 
     #[test]
     fn test_point_to_point() {

@@ -8,5 +8,5 @@ mod ray_triangle;
 mod sphere_sphere;
 //mod sphere_triangle;
 mod sphere_vector3;
-//mod triangle_triangle;
+mod triangle_triangle;
 //mod triangle_vector3;
