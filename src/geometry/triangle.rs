@@ -13,6 +13,11 @@ impl Triangle {
         Triangle { p, q, r }
     }
 
+    /// Get the vertices as a tuple
+    pub fn vertices(&self) -> (Vector3, Vector3, Vector3) {
+        (self.p, self.q, self.r)
+    }
+
     /// Get the normal
     pub fn normal(&self) -> Vector3 {
         let u = self.q - self.p;

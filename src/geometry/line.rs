@@ -12,6 +12,11 @@ impl Line {
         Line { p, q }
     }
 
+    /// Get the vertices as a tuple
+    pub fn vertices(&self) -> (Vector3, Vector3) {
+        (self.p, self.q)
+    }
+
     /// Get the p-component
     pub fn p(&self) -> Vector3 {
         self.p
@@ -22,14 +27,14 @@ impl Line {
         self.q
     }
 
-    /// Compute the unit vector direction
+    /// Compute the vector direction
     pub fn direction(&self) -> Vector3 {
-        (self.q - self.p).unit()
+        self.q - self.p
     }
 
     /// Get the length of the segment
     pub fn length(&self) -> f64 {
-        (self.q - self.p).mag()
+        self.direction().mag()
     }
 }
 

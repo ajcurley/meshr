@@ -1,4 +1,8 @@
+mod intersection;
 mod intersects;
+
+/// Geometric tolerance
+const EPSILON: f64 = 1e-8;
 
 /// Check for a spatial intersection between two geometric entities
 pub trait Intersects<T> {
