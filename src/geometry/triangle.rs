@@ -1,4 +1,4 @@
-use crate::geometry::Vector3;
+use crate::geometry::{Line, Vector3, EPSILON};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Triangle {
@@ -58,6 +58,23 @@ impl Triangle {
         let u = 1. - v - w;
 
         Vector3::new(u, v, w)
+    }
+
+    /// Check if the two triangles are coplanar
+    pub fn is_coplanar(t0: &Triangle, t1: &Triangle) -> bool {
+        let n0 = t0.unit_normal();
+        let n1 = t1.unit_normal();
+
+        Vector3::dot(&n0, &n1) > (1. - EPSILON)
+    }
+
+    /// Get the edges of the triangle
+    pub fn edges(&self) -> [Line; 3] {
+        [
+            Line::new(self.q, self.p),
+            Line::new(self.r, self.q),
+            Line::new(self.p, self.r),
+        ]
     }
 }
 

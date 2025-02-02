@@ -1,5 +1,5 @@
-use crate::geometry::collision::{Intersection, EPSILON};
-use crate::geometry::{Line, Triangle, Vector3};
+use crate::geometry::collision::Intersection;
+use crate::geometry::{Line, Triangle, Vector3, EPSILON};
 
 /// Compute the intersection point between a line segment and a triangle.
 pub fn intersection_line_triangle(line: &Line, triangle: &Triangle) -> Option<Vector3> {

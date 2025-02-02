@@ -14,3 +14,6 @@ pub use ray::Ray;
 pub use sphere::Sphere;
 pub use triangle::Triangle;
 pub use vector3::Vector3;
+
+/// Geometric tolerance
+pub const EPSILON: f64 = 1e-8;
