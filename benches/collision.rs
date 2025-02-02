@@ -18,6 +18,25 @@ pub fn benchmark_intersects_aabb_triangle(c: &mut Criterion) {
     });
 }
 
+/// Triangle/Triangle intersection test benchmark
+pub fn benchmark_intersects_triangle_triangle(c: &mut Criterion) {
+    c.bench_function("Triangle/Triangle Intersection", |b| {
+        let p = generate_vector3();
+        let q = generate_vector3();
+        let r = generate_vector3();
+        let t1 = Triangle::new(p, q, r);
+
+        let s = generate_vector3();
+        let t = generate_vector3();
+        let u = generate_vector3();
+        let t2 = Triangle::new(s, t, u);
+
+        b.iter(|| {
+            t1.intersects(&t2);
+        });
+    });
+}
+
 /// Generate a random Vector3 in the range [-4, 4]
 fn generate_vector3() -> Vector3 {
     let mut rng = rand::thread_rng();
@@ -27,6 +46,10 @@ fn generate_vector3() -> Vector3 {
     Vector3::new(x, y, z)
 }
 
-criterion_group!(benches, benchmark_intersects_aabb_triangle,);
+criterion_group!(
+    benches,
+    benchmark_intersects_aabb_triangle,
+    benchmark_intersects_triangle_triangle,
+);
 
 criterion_main!(benches);

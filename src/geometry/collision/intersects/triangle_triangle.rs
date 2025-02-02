@@ -2,6 +2,7 @@ use crate::geometry::collision::Intersects;
 use crate::geometry::{Triangle, Vector3, EPSILON};
 
 /// Check for a spatial intersection two Triangles
+/// https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tritri_isectline.txt
 pub fn intersects_triangle_triangle(t1: &Triangle, t2: &Triangle) -> bool {
     // Unpack the vertices to match the nomenclature in the article
     let (v0, v1, v2) = t1.vertices();
