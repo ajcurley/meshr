@@ -293,6 +293,13 @@ impl HeMesh {
         false
     }
 
+    /// Check if the mesh is composed of strictly triangles
+    pub fn is_triangles(&self) -> bool {
+        (0..self.n_faces())
+            .find(|&f| self.face_vertices(f).len() != 3)
+            .is_none()
+    }
+
     /// Get the axis-aligned bounding box
     pub fn bounds(&self) -> Aabb {
         let mut min = Vector3::ones() * f64::INFINITY;
