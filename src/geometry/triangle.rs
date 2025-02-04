@@ -1,5 +1,5 @@
 use crate::geometry::collision;
-use crate::geometry::{Aabb, Intersects, Line, Ray, Vector3};
+use crate::geometry::{Aabb, Geometry, Line, Ray, Vector3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Triangle {
@@ -95,27 +95,39 @@ impl std::ops::IndexMut<usize> for Triangle {
     }
 }
 
-impl Intersects<Aabb> for Triangle {
+impl crate::geometry::Intersects<Aabb> for Triangle {
     fn intersects(&self, other: &Aabb) -> bool {
         collision::intersects::intersects_aabb_triangle(other, self)
     }
 }
 
-impl Intersects<Ray> for Triangle {
+impl crate::geometry::Intersects<Ray> for Triangle {
     fn intersects(&self, other: &Ray) -> bool {
         collision::intersects::intersects_ray_triangle(other, self)
     }
 }
 
-impl Intersects<Triangle> for Triangle {
+impl crate::geometry::Intersects<Triangle> for Triangle {
     fn intersects(&self, other: &Triangle) -> bool {
         collision::intersects::intersects_triangle_triangle(self, other)
     }
 }
 
-impl Intersects<Vector3> for Triangle {
+impl crate::geometry::Intersects<Vector3> for Triangle {
     fn intersects(&self, _other: &Vector3) -> bool {
         // TODO: implement
         unimplemented!();
-    
+    }
+}
+
+impl crate::geometry::Intersection<Line> for Triangle {
+    fn intersection(&self, other: &Line) -> Option<Geometry> {
+        collision::intersection::intersection_line_triangle(other, self)
+    }
+}
+
+impl crate::geometry::Intersection<Triangle> for Triangle {
+    fn intersection(&self, other: &Triangle) -> Option<Geometry> {
+        collision::intersection::intersection_triangle_triangle(self, other)
+    }
 }

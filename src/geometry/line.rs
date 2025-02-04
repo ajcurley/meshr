@@ -1,4 +1,5 @@
-use crate::geometry::Vector3;
+use crate::geometry::collision;
+use crate::geometry::{Geometry, Triangle, Vector3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Line {
@@ -57,5 +58,11 @@ impl std::ops::IndexMut<usize> for Line {
             1 => &mut self.q,
             _ => panic!("index out of range"),
         }
+    }
+}
+
+impl crate::geometry::Intersection<Triangle> for Line {
+    fn intersection(&self, other: &Triangle) -> Option<Geometry> {
+        collision::intersection::intersection_line_triangle(self, other)
     }
 }

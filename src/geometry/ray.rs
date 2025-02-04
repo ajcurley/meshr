@@ -1,5 +1,5 @@
 use crate::geometry::collision;
-use crate::geometry::{Aabb, Intersects, Sphere, Triangle, Vector3};
+use crate::geometry::{Aabb, Sphere, Triangle, Vector3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Ray {
@@ -24,19 +24,19 @@ impl Ray {
     }
 }
 
-impl Intersects<Aabb> for Ray {
+impl crate::geometry::Intersects<Aabb> for Ray {
     fn intersects(&self, other: &Aabb) -> bool {
         collision::intersects::intersects_aabb_ray(other, self)
     }
 }
 
-impl Intersects<Sphere> for Ray {
+impl crate::geometry::Intersects<Sphere> for Ray {
     fn intersects(&self, other: &Sphere) -> bool {
         collision::intersects::intersects_ray_sphere(self, other)
     }
 }
 
-impl Intersects<Triangle> for Ray {
+impl crate::geometry::Intersects<Triangle> for Ray {
     fn intersects(&self, other: &Triangle) -> bool {
         collision::intersects::intersects_ray_triangle(self, other)
     }
