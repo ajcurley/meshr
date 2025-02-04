@@ -1,4 +1,5 @@
-use crate::geometry::Vector3;
+use crate::geometry::collision;
+use crate::geometry::{Intersects, Vector3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Aabb {
@@ -61,5 +62,11 @@ impl Aabb {
         let center = self.center + Vector3::new(dx, dy, dz);
 
         Aabb::new(center, h)
+    }
+}
+
+impl Intersects<Vector3> for Aabb {
+    fn intersects(&self, other: &Vector3) -> bool {
+        collision::intersects::intersects_aabb_vector3(self, other)
     }
 }

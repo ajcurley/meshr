@@ -1,3 +1,6 @@
+use crate::geometry::collision;
+use crate::geometry::{Aabb, Intersects};
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Vector3 {
     x: f64,
@@ -296,5 +299,11 @@ impl std::ops::Neg for Vector3 {
 
     fn neg(self) -> Self::Output {
         Vector3::new(-self.x, -self.y, -self.z)
+    }
+}
+
+impl Intersects<Aabb> for Vector3 {
+    fn intersects(&self, other: &Aabb) -> bool {
+        collision::intersects::intersects_aabb_vector3(other, self)
     }
 }
