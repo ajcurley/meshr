@@ -35,7 +35,7 @@ pub fn intersects_triangle_triangle(t1: &Triangle, t2: &Triangle) -> bool {
     let n2 = t2.normal();
     let d2 = -Vector3::dot(&n2, &u0);
 
-    // Compute the signed distances to the plane fo triangle t2 for each of
+    // Compute the signed distances to the plane of triangle t2 for each of
     // the vertices in triangle t1.
     let dv0 = Vector3::dot(&n2, &v0) + d2;
     let dv1 = Vector3::dot(&n2, &v1) + d2;
