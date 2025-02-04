@@ -21,7 +21,7 @@ pub fn intersects_aabb_triangle(a: &Aabb, t: &Triangle) -> bool {
     let fey = e0[1].abs();
     let fez = e0[2].abs();
 
-    if !axistest_x01(e0[2], e0[2], fez, fey, v0, v2, halfsize) {
+    if !axistest_x01(e0[2], e0[1], fez, fey, v0, v2, halfsize) {
         return false;
     }
 
