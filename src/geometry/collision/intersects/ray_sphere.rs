@@ -1,8 +1,7 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Ray, Sphere, Vector3};
 
 /// Check for a Ray/Sphere spatial intersection
-fn intersects_ray_sphere(r: &Ray, s: &Sphere) -> bool {
+pub fn intersects_ray_sphere(r: &Ray, s: &Sphere) -> bool {
     let l = s.center() - r.origin();
     let ld = Vector3::dot(&l, &r.direction());
     let ll = Vector3::dot(&l, &l);
@@ -13,18 +12,6 @@ fn intersects_ray_sphere(r: &Ray, s: &Sphere) -> bool {
     }
 
     (ll - ld * ld) <= rr
-}
-
-impl Intersects<Ray> for Sphere {
-    fn intersects(&self, r: &Ray) -> bool {
-        intersects_ray_sphere(r, self)
-    }
-}
-
-impl Intersects<Sphere> for Ray {
-    fn intersects(&self, s: &Sphere) -> bool {
-        intersects_ray_sphere(self, s)
-    }
 }
 
 #[cfg(test)]

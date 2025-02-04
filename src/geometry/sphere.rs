@@ -1,4 +1,5 @@
-use crate::geometry::Vector3;
+use crate::geometry::collision;
+use crate::geometry::{Aabb, Intersects, Ray, Vector3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Sphere {
@@ -20,5 +21,29 @@ impl Sphere {
     /// Get the radius
     pub fn radius(&self) -> f64 {
         self.radius
+    }
+}
+
+impl Intersects<Aabb> for Sphere {
+    fn intersects(&self, other: &Aabb) -> bool {
+        collision::intersects::intersects_aabb_sphere(other, self)
+    }
+}
+
+impl Intersects<Ray> for Sphere {
+    fn intersects(&self, other: &Ray) -> bool {
+        collision::intersects::intersects_ray_sphere(other, self)
+    }
+}
+
+impl Intersects<Sphere> for Sphere {
+    fn intersects(&self, other: &Sphere) -> bool {
+        collision::intersects::intersects_sphere_sphere(self, other)
+    }
+}
+
+impl Intersects<Vector3> for Sphere {
+    fn intersects(&self, other: &Vector3) -> bool {
+        collision::intersects::intersects_sphere_vector3(self, other)
     }
 }

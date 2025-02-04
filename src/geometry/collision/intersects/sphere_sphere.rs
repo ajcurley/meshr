@@ -1,17 +1,10 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Sphere, Vector3};
 
 /// Check for a Sphere/Sphere spatial intersection
-fn intersects_sphere_sphere(a: &Sphere, b: &Sphere) -> bool {
+pub fn intersects_sphere_sphere(a: &Sphere, b: &Sphere) -> bool {
     let d = a.center() - b.center();
     let r = a.radius() + b.radius();
     Vector3::dot(&d, &d) <= r * r
-}
-
-impl Intersects<Sphere> for Sphere {
-    fn intersects(&self, s: &Sphere) -> bool {
-        intersects_sphere_sphere(self, s)
-    }
 }
 
 #[cfg(test)]

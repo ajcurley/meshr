@@ -1,8 +1,7 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Aabb, Sphere};
 
 /// Check for an AABB/Sphere spatial intersection
-fn intersects_aabb_sphere(a: &Aabb, s: &Sphere) -> bool {
+pub fn intersects_aabb_sphere(a: &Aabb, s: &Sphere) -> bool {
     let center = s.center();
     let radius = s.radius();
     let min = a.min();
@@ -21,18 +20,6 @@ fn intersects_aabb_sphere(a: &Aabb, s: &Sphere) -> bool {
     }
 
     d <= radius * radius
-}
-
-impl Intersects<Aabb> for Sphere {
-    fn intersects(&self, a: &Aabb) -> bool {
-        intersects_aabb_sphere(a, self)
-    }
-}
-
-impl Intersects<Sphere> for Aabb {
-    fn intersects(&self, s: &Sphere) -> bool {
-        intersects_aabb_sphere(self, s)
-    }
 }
 
 #[cfg(test)]

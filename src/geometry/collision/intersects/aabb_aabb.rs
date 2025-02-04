@@ -1,8 +1,7 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::Aabb;
 
 /// Check for an AABB/AABB spatial intersection
-fn intersects_aabb_aabb(a: &Aabb, b: &Aabb) -> bool {
+pub fn intersects_aabb_aabb(a: &Aabb, b: &Aabb) -> bool {
     let min_a = a.min();
     let max_a = a.max();
     let min_b = b.min();
@@ -14,12 +13,6 @@ fn intersects_aabb_aabb(a: &Aabb, b: &Aabb) -> bool {
         && max_a[1] >= min_b[1]
         && min_a[2] <= max_b[2]
         && max_a[2] >= min_b[2]
-}
-
-impl Intersects<Aabb> for Aabb {
-    fn intersects(&self, other: &Aabb) -> bool {
-        intersects_aabb_aabb(self, other)
-    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,7 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Aabb, Ray};
 
 /// Check for an AABB/Ray spatial intersection
-fn intersects_aabb_ray(a: &Aabb, r: &Ray) -> bool {
+pub fn intersects_aabb_ray(a: &Aabb, r: &Ray) -> bool {
     let origin = r.origin();
     let inv = r.direction().inv();
     let min = a.min();
@@ -24,18 +23,6 @@ fn intersects_aabb_ray(a: &Aabb, r: &Ray) -> bool {
     let tmax = tmax.min(tz0.max(tz1));
 
     tmax >= tmin.max(0.)
-}
-
-impl Intersects<Aabb> for Ray {
-    fn intersects(&self, a: &Aabb) -> bool {
-        intersects_aabb_ray(a, self)
-    }
-}
-
-impl Intersects<Ray> for Aabb {
-    fn intersects(&self, r: &Ray) -> bool {
-        intersects_aabb_ray(self, r)
-    }
 }
 
 #[cfg(test)]

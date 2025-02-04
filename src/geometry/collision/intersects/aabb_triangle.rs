@@ -1,9 +1,8 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Aabb, Triangle, Vector3};
 
 /// Check for an AABB/Triangle spatial intersection
 /// - source: https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt
-fn intersects_aabb_triangle(a: &Aabb, t: &Triangle) -> bool {
+pub fn intersects_aabb_triangle(a: &Aabb, t: &Triangle) -> bool {
     let center = a.center();
     let halfsize = a.halfsize();
 
@@ -158,18 +157,6 @@ fn axistest_z0(a: f64, b: f64, fa: f64, fb: f64, v0: Vector3, v1: Vector3, h: Ve
     let (min, max) = if p0 < p1 { (p0, p1) } else { (p1, p0) };
     let rad = fa * h[0] + fb * h[1];
     !(min > rad || max < -rad)
-}
-
-impl Intersects<Aabb> for Triangle {
-    fn intersects(&self, a: &Aabb) -> bool {
-        intersects_aabb_triangle(a, self)
-    }
-}
-
-impl Intersects<Triangle> for Aabb {
-    fn intersects(&self, t: &Triangle) -> bool {
-        intersects_aabb_triangle(self, t)
-    }
 }
 
 #[cfg(test)]

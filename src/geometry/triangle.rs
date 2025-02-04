@@ -1,4 +1,5 @@
-use crate::geometry::{Line, Vector3, EPSILON};
+use crate::geometry::collision;
+use crate::geometry::{Aabb, Intersects, Line, Ray, Vector3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Triangle {
@@ -60,14 +61,6 @@ impl Triangle {
         Vector3::new(u, v, w)
     }
 
-    /// Check if the two triangles are coplanar
-    pub fn is_coplanar(t0: &Triangle, t1: &Triangle) -> bool {
-        let n0 = t0.unit_normal();
-        let n1 = t1.unit_normal();
-
-        Vector3::dot(&n0, &n1) > (1. - EPSILON)
-    }
-
     /// Get the edges of the triangle
     pub fn edges(&self) -> [Line; 3] {
         [
@@ -100,4 +93,29 @@ impl std::ops::IndexMut<usize> for Triangle {
             _ => panic!("index out of range"),
         }
     }
+}
+
+impl Intersects<Aabb> for Triangle {
+    fn intersects(&self, other: &Aabb) -> bool {
+        collision::intersects::intersects_aabb_triangle(other, self)
+    }
+}
+
+impl Intersects<Ray> for Triangle {
+    fn intersects(&self, other: &Ray) -> bool {
+        collision::intersects::intersects_ray_triangle(other, self)
+    }
+}
+
+impl Intersects<Triangle> for Triangle {
+    fn intersects(&self, other: &Triangle) -> bool {
+        collision::intersects::intersects_triangle_triangle(self, other)
+    }
+}
+
+impl Intersects<Vector3> for Triangle {
+    fn intersects(&self, _other: &Vector3) -> bool {
+        // TODO: implement
+        unimplemented!();
+    
 }

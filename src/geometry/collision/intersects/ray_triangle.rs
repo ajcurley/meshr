@@ -1,8 +1,7 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Ray, Triangle, Vector3, EPSILON};
 
 /// Check for a Ray/Triangle spatial intersection
-fn intersects_ray_triangle(r: &Ray, t: &Triangle) -> bool {
+pub fn intersects_ray_triangle(r: &Ray, t: &Triangle) -> bool {
     let origin = r.origin();
     let direction = r.direction();
 
@@ -32,18 +31,6 @@ fn intersects_ray_triangle(r: &Ray, t: &Triangle) -> bool {
     }
 
     (d_inv * Vector3::dot(&e1, &q)) > EPSILON
-}
-
-impl Intersects<Ray> for Triangle {
-    fn intersects(&self, r: &Ray) -> bool {
-        intersects_ray_triangle(r, self)
-    }
-}
-
-impl Intersects<Triangle> for Ray {
-    fn intersects(&self, t: &Triangle) -> bool {
-        intersects_ray_triangle(self, t)
-    }
 }
 
 #[cfg(test)]

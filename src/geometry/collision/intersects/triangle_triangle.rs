@@ -1,4 +1,3 @@
-use crate::geometry::collision::Intersects;
 use crate::geometry::{Triangle, Vector3, EPSILON};
 
 /// Check for a spatial intersection two Triangles
@@ -300,12 +299,6 @@ fn point_in_tri(v0: Vector3, u0: Vector3, u1: Vector3, u2: Vector3, i0: usize, i
     let d2 = a * v0[i0] + b * v0[i1] + c;
 
     d0 * d1 > 0. && d0 * d2 > 0.
-}
-
-impl Intersects<Triangle> for Triangle {
-    fn intersects(&self, triangle: &Triangle) -> bool {
-        intersects_triangle_triangle(self, triangle)
-    }
 }
 
 #[cfg(test)]
